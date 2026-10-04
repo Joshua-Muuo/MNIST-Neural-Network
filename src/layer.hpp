@@ -2,7 +2,7 @@
 #include "types.hpp"
 #include <Eigen/Dense>
 
-using Matrix = Eigen::MatrixXd; 
+using Matrix = Eigen::MatrixXf; 
 class Layer
 {
 	virtual Matrix forward(const Matrix& inputs) = 0;
