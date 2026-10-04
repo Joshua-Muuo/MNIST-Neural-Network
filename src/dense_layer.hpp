@@ -8,4 +8,7 @@ public:
 
 	Matrix forward(const Matrix& inputs) override;
 	Matrix backward(const Matrix& inputs, f32 learningRate) override;
+
+private:
+	Matrix mWeights, mBiases;
 };
