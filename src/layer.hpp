@@ -5,7 +5,6 @@
 using Matrix = Eigen::MatrixXd; 
 class Layer
 {
-	virtual Matrix forward(const Matrix& inputs);
-
-	virtual Matrix backward(const Matrix& inputs, f32 learningRate);
+	virtual Matrix forward(const Matrix& inputs) = 0;
+	virtual Matrix backward(const Matrix& inputs, f32 learningRate) = 0;
 };
