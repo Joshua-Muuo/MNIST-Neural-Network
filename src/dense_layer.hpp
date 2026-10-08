@@ -10,5 +10,6 @@ public:
 	Matrix backward(const Matrix& inputs, f32 learningRate) override;
 
 private:
-	Matrix mWeights, mBiases;
+	Matrix mWeights;
+	Eigen::RowVectorXf mBiases;
 };

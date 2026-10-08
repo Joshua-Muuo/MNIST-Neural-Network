@@ -11,8 +11,9 @@ public:
 
 	void train();
 private:
-	void forward();
-	void backward();
+	Matrix forward(Matrix input);
+	void backward(Matrix batchInputs, Matrix predOutputs, std::span<u8> labels);
 
 	std::vector<std::unique_ptr<Layer>> mLayers;
+	const u32 BATCH_SIZE{100u};
 };
