@@ -41,14 +41,6 @@ void NeuralNetwork::train()
 
 	// header is 16 bytes and is stored in big-endian
 	
-	u32* num;
-	for (usize i{}; i < 16; i += sizeof(u32))
-	{
-		num = std::start_lifetime_as<u32>(&imageBuffer[i]);
-		*num = std::byteswap(*num);
-	}
-
-	num = (u32*)&imageBuffer[4];
 
 	const char* BLACK{"\033[40m"}, *WHITE{"\033[47m"}, *RESET{"\033[0m"};
 	for (usize i{784 * 9}; i < 784 * 10; ++i)
@@ -56,13 +48,13 @@ void NeuralNetwork::train()
 		if ((i) % 28 == 0 && i != 0)
 			std::println("{}", RESET);
 		// std::print("{}", (i - 16) % 28);
-		std::print("\033[48;2;{};{};{}m  {}", imageBuffer[i], imageBuffer[i], imageBuffer[i], RESET);
+		std::print("\033[48;2;{};{};{}m  {}", imageBuffer.data[i], imageBuffer.data[i], imageBuffer.data[i], RESET);
 	}
 
 	std::println("\n");
 	// Matrix input{Matrix::NullaryExpr(100, 784, std::ref(Utils::randFloat))};
 
-	Eigen::Map<Eigen::Matrix<u8, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> input{imageBuffer.data(), 100, 784};
+	Eigen::Map<Eigen::Matrix<u8, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> input{imageBuffer.data.data(), 100, 784};
 	Matrix predOutput{forward(input)};
 
 

@@ -61,37 +61,41 @@ namespace Utils
 		return output;
 	}
 
-	std::vector<u8> loadImage(const std::string& filename)
+	Data loadImage(const std::string& filename)
 	{
-		std::vector<u8> image{loadGZipFile(filename)};
-		u32* num;
+		Data output;
+		output.data = loadGZipFile(filename);
 
-		const u32 HEADER_SIZE{16};
 		// header is 16 bytes and is stored in big-endian
-		for (usize i{}; i < HEADER_SIZE; i += sizeof(u32))
-		{
-			num = std::start_lifetime_as<u32>(&image[i]);
-			*num = std::byteswap(*num);
-		}
+		const u32 HEADER_SIZE{16};
 
-		image.erase(image.begin(), image.begin() + HEADER_SIZE);
-		return image;
+		std::span<u32> header{(u32*)output.data.data(), HEADER_SIZE};
+		for (u32& value : header)
+			value = std::byteswap(value);
+
+		output.magicNumber = header[0];
+		output.numberOfItems = header[1];
+		output.rows = header[2];
+		output.cols = header[3];
+
+		output.data.erase(output.data.begin(), output.data.begin() + HEADER_SIZE);
+		return output;
 	}
 
-	std::vector<u8> loadLabel(const std::string& filename)
+	Data loadLabel(const std::string& filename)
 	{
-		std::vector<u8> label{loadGZipFile(filename)};
+		Data output;
+		output.data = loadGZipFile(filename);
 		u32* num;
 
+		// header is 8 bytes and is stored in big-endian
 		const u32 HEADER_SIZE{8};
-		// header is 16 bytes and is stored in big-endian
-		for (usize i{}; i < HEADER_SIZE; i += sizeof(u32))
-		{
-			num = std::start_lifetime_as<u32>(&label[i]);
-			*num = std::byteswap(*num);
-		}
 
-		label.erase(label.begin(), label.begin() + HEADER_SIZE);
-		return label;
+		std::span<u32> header{(u32*)output.data.data(), HEADER_SIZE};
+		for (u32& value : header)
+			value = std::byteswap(value);
+
+		output.data.erase(output.data.begin(), output.data.begin() + HEADER_SIZE);
+		return output;
 	}
 }
