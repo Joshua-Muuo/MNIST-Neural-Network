@@ -7,6 +7,11 @@ include(FetchContent)
 
 set(SRC_FILES 
 	src/main.cpp 
+	src/dense_layer.cpp
+	src/neural_network.cpp
+	src/relu_layer.cpp
+	src/utils.cpp
+	src/softmax.cpp
 )
 
 FetchContent_Declare(
@@ -21,6 +26,16 @@ FetchContent_MakeAvailable(Eigen3)
 set(EIGEN_BUILD_DOC OFF CACHE INTERNAL "")
 set(EIGEN_BUILD_PKGCONFIG OFF CACHE INTERNAL "")
 set(BUILD_TESTING OFF CACHE INTERNAL "")
+
+FetchContent_Declare(
+    zlib
+    GIT_REPOSITORY https://github.com/madler/zlib.git
+    GIT_TAG        v1.3.2 
+)
+
+set(ZLIB_BUILD_TESTING OFF CACHE INTERNAL "")
+
+FetchContent_MakeAvailable(zlib)
 
 # FetchContent_Declare(
 #     imgui
@@ -53,5 +68,5 @@ add_executable(NeuralNetwork ${SRC_FILES})
 
 
 
-target_link_libraries(NeuralNetwork Eigen3::Eigen)	
+target_link_libraries(NeuralNetwork Eigen3::Eigen ZLIB::ZLIB)	
 # target_link_libraries(NeuralNetwork PUBLIC glm::glm glfw imgui)	
