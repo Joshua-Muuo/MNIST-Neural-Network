@@ -4,8 +4,6 @@
 #include <print>
 #include <random>
 #include <zlib.h>
-#include <fstream>
-#include <arpa/inet.h>
 
 namespace Utils
 {
@@ -13,7 +11,7 @@ namespace Utils
 
 	f32 randFloat()
 	{
-		static std::uniform_real_distribution<f32> dist(-1.0f, 1.0f);
+		static std::uniform_real_distribution<f32> dist(0.0f, 1.0f);
 		return dist(gen);
 	}
 
@@ -69,9 +67,10 @@ namespace Utils
 		// header is 16 bytes and is stored in big-endian
 		const u32 HEADER_SIZE{16};
 
-		std::span<u32> header{(u32*)output.data.data(), HEADER_SIZE};
+		std::span<u32> header{(u32*)output.data.data(), HEADER_SIZE / 4};
 		for (u32& value : header)
 			value = std::byteswap(value);
+
 
 		output.magicNumber = header[0];
 		output.numberOfItems = header[1];
@@ -79,6 +78,7 @@ namespace Utils
 		output.cols = header[3];
 
 		output.data.erase(output.data.begin(), output.data.begin() + HEADER_SIZE);
+
 		return output;
 	}
 
@@ -86,7 +86,6 @@ namespace Utils
 	{
 		Data output;
 		output.data = loadGZipFile(filename);
-		u32* num;
 
 		// header is 8 bytes and is stored in big-endian
 		const u32 HEADER_SIZE{8};
@@ -96,6 +95,25 @@ namespace Utils
 			value = std::byteswap(value);
 
 		output.data.erase(output.data.begin(), output.data.begin() + HEADER_SIZE);
+		return output;
+	}
+	
+	std::vector<f32> loadBatch(std::span<u8> data, u32 startingIndex, u32 batchSize)
+	{
+		std::vector<f32> output;
+		output.reserve(batchSize);
+		// std::copy(
+		// 		data.begin() + startingIndex, 
+		// 		data.begin() + startingIndex + batchSize, 
+		// 		output.begin()
+		// 		);
+		//
+
+		for (const u8& value : data)
+		{
+			output.push_back((f32)value / 255.0f);
+		}
+
 		return output;
 	}
 }

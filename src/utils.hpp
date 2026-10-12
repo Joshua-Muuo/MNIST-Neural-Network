@@ -2,6 +2,7 @@
 #include <optional>
 #include <vector>
 #include "types.hpp"
+#include <span>
 
 namespace Utils
 {
@@ -15,9 +16,25 @@ namespace Utils
 
 	extern std::mt19937 gen;
 
-	// returns a random f32 value between (-1.0, 1.0)
+	// returns a random f32 value in the interval [0.0, 1.0)
 	f32 randFloat();
+
+	// returns a random value in the interval [0, a)
+	template<typename T>
+	T rand(T a)
+	{
+		return static_cast<T>(a * randFloat());
+	}
+
+	// returns a random value in the interval [a, b)
+	template<typename T>
+	T rand(T a, T b)	
+	{
+		return static_cast<T>((b - a) * randFloat()) + a;
+	}
+
 
 	Data loadImage(const std::string& filename);
 	Data loadLabel(const std::string& filename);
+	std::vector<f32> loadBatch(std::span<u8> data, u32 startingIndex = 0, u32 batchSize = 100);
 }
