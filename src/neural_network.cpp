@@ -7,6 +7,8 @@
 #include <print>
 #include "utils.hpp"
 
+using RowMajorMatrix = Eigen::Matrix<f32, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+
 NeuralNetwork::NeuralNetwork(std::initializer_list<u32> layerSizes)
 {
 	for (usize i{1}; i < layerSizes.size(); ++i)
@@ -43,7 +45,9 @@ void NeuralNetwork::train()
 	
 
 	const char* BLACK{"\033[40m"}, *WHITE{"\033[47m"}, *RESET{"\033[0m"};
-	for (usize i{784 * 9}; i < 784 * 10; ++i)
+	
+	u32 index{Utils::rand(imageBuffer.numberOfItems)};
+	for (usize i{784 * index}; i < 784 * (index + 1); ++i)
 	{
 		if ((i) % 28 == 0 && i != 0)
 			std::println("{}", RESET);
@@ -51,12 +55,16 @@ void NeuralNetwork::train()
 		std::print("\033[48;2;{};{};{}m  {}", imageBuffer.data[i], imageBuffer.data[i], imageBuffer.data[i], RESET);
 	}
 
-	std::println("\n");
+	std::println("\nNumber is {}", labelBuffer.data[index]);
 	// Matrix input{Matrix::NullaryExpr(100, 784, std::ref(Utils::randFloat))};
 
-	Eigen::Map<Eigen::Matrix<u8, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>> input{imageBuffer.data.data(), 100, 784};
-	Matrix predOutput{forward(input)};
+	std::vector<f32> batch{Utils::loadBatch(imageBuffer.data)};
+	Eigen::Map<RowMajorMatrix> input{batch.data(), BATCH_SIZE, 784};
+	Matrix output{forward(input)};
 
+	backward(input, output, {labelBuffer.data.data(), BATCH_SIZE});
 
+	std::cout << "output is: \n\n " << output << "\n\n";
 
+	
 }

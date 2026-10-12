@@ -4,7 +4,7 @@
 #include <print>
 
 DenseLayer::DenseLayer(u32 inputSize, u32 outputSize):
-mWeights{Matrix::NullaryExpr(outputSize, inputSize, std::ref(Utils::randFloat))}, 
+mWeights{Matrix::NullaryExpr(outputSize, inputSize, [](){return Utils::randFloat() * 2 - 1; })}, 
 mBiases{outputSize}
 {
 	// mWeights.setRandom();

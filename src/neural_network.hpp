@@ -15,5 +15,5 @@ private:
 	void backward(Matrix batchInputs, Matrix predOutputs, std::span<u8> labels);
 
 	std::vector<std::unique_ptr<Layer>> mLayers;
-	const u32 BATCH_SIZE{100u};
+	const u32 BATCH_SIZE{1u};
 };
