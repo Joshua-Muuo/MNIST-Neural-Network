@@ -3,6 +3,9 @@
 #include <vector>
 #include "types.hpp"
 #include <span>
+#include <Eigen/Dense>
+
+using Matrix = Eigen::MatrixXf; 
 
 namespace Utils
 {
@@ -34,7 +37,15 @@ namespace Utils
 	}
 
 
+	// Matrix matrixDot(Matrix& a, const Matrix b);
 	Data loadImage(const std::string& filename);
 	Data loadLabel(const std::string& filename);
-	std::vector<f32> loadBatch(std::span<u8> data, u32 startingIndex = 0, u32 batchSize = 100);
+	std::vector<f32> loadBatchImages(std::span<u8> data, u32 startingIndex = 0, u32 batchSize = 100);
+	std::vector<f32> loadBatchLabels(std::span<u8> data, u32 startingIndex = 0, u32 batchSize = 100);
+
+	void saveWeights(const Eigen::MatrixXf& weights, std::string filename = "");
+	void saveBiases(const Eigen::RowVectorXf& biases, std::string filename = "");
+
+	
+	u32 printImage(std::span<u8> data, std::optional<u32> index);
 }

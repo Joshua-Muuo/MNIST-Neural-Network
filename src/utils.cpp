@@ -1,5 +1,7 @@
 #include "utils.hpp"
+#include "zconf.h"
 #include <filesystem>
+#include <fstream>
 #include <iterator>
 #include <print>
 #include <random>
@@ -94,14 +96,19 @@ namespace Utils
 		for (u32& value : header)
 			value = std::byteswap(value);
 
+		output.magicNumber = header[0];
+		output.numberOfItems = header[1];
+		output.rows = std::nullopt; 
+		output.cols = std::nullopt;
+
 		output.data.erase(output.data.begin(), output.data.begin() + HEADER_SIZE);
 		return output;
 	}
 	
-	std::vector<f32> loadBatch(std::span<u8> data, u32 startingIndex, u32 batchSize)
+	std::vector<f32> loadBatchImages(std::span<u8> data, u32 startingIndex, u32 batchSize)
 	{
 		std::vector<f32> output;
-		output.reserve(batchSize);
+		output.reserve(batchSize * 784);
 		// std::copy(
 		// 		data.begin() + startingIndex, 
 		// 		data.begin() + startingIndex + batchSize, 
@@ -110,10 +117,68 @@ namespace Utils
 		//
 
 		for (const u8& value : data)
-		{
 			output.push_back((f32)value / 255.0f);
+
+		return output;
+	}
+
+	std::vector<f32> loadBatchLabels(std::span<u8> data, u32 startingIndex, u32 batchSize)
+	{
+		std::vector<f32> output(batchSize * 10, 0.0f);
+
+		for (usize i{}; i < batchSize; ++i)
+		{
+			const u8& label{data[startingIndex + i]};
+			output[label + 10 * i] = 1.0f; 
 		}
 
 		return output;
+	}
+
+	u32 printImage(std::span<u8> data, std::optional<u32> index)
+	{
+		u32 NUMBER_OF_PIXELS{784};
+		const usize numberOfImages{data.size() / NUMBER_OF_PIXELS};
+		if (!index.has_value())
+			index = rand(numberOfImages);
+
+		static const char* BLACK{"\033[40m"}, *WHITE{"\033[47m"}, *RESET{"\033[0m"};
+		for (usize i{NUMBER_OF_PIXELS * index.value()}; i < NUMBER_OF_PIXELS * (index.value() + 1); ++i)
+		{
+			if ((i) % 28 == 0 && i != 0)
+				std::println("{}", RESET);
+			// std::print("{}", (i - 16) % 28);
+			std::print("\033[48;2;{};{};{}m  {}", data[i], data[i], data[i], RESET);
+		}
+
+		return index.value();
+	}
+
+	void saveWeights(const Eigen::MatrixXf& weights, std::string filename)
+	{
+		if (filename == "")
+			filename = std::format("dense_layer_weights_{}x{}", weights.rows(), weights.cols());
+		std::ofstream file{"layers/" + filename, std::ios::binary};		
+
+		std::array<i64, 6> data{0x12344321, weights.rows(), 0u, weights.cols(), 0u};
+		file.write(reinterpret_cast<const char*>(data.data()), data.size() * sizeof(i64));
+		// file << 0x12344321 << weights.rows() << 0u << weights.cols() << 0u;
+
+		std::println("saving weights to layers/{}", filename);
+
+		file.write(reinterpret_cast<const char*>(weights.data()), weights.size() * sizeof(f32));
+	}
+
+	void saveBiases(const Eigen::RowVectorXf& biases, std::string filename)
+	{
+		if (filename.empty())
+			filename = std::format("dense_layer_biases_{}x{}", biases.rows(), biases.cols());
+		std::ofstream file{"layers/" + filename, std::ios::binary};		
+
+		std::array<i64, 5> data{0x78900987, biases.rows(), 0u, biases.cols(), 0u};
+		file.write(reinterpret_cast<const char*>(data.data()), data.size() * sizeof(i64));
+		// file << 0x78900987 << biases.rows() << 0u << biases.cols() << 0u;
+
+		file.write(reinterpret_cast<const char*>(biases.data()), biases.size() * sizeof(f32));
 	}
 }
