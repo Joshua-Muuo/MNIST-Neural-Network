@@ -3,37 +3,46 @@
 #include "relu_layer.hpp"
 #include "softmax.hpp"
 #include <iostream>
+#include <iterator>
 #include <memory>
 #include <print>
 #include "utils.hpp"
 
 using RowMajorMatrix = Eigen::Matrix<f32, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+using RowMajorMatrixU = Eigen::Matrix<u32, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
 NeuralNetwork::NeuralNetwork(std::initializer_list<u32> layerSizes)
 {
+	u32 inputSize, outputSize;
 	for (usize i{1}; i < layerSizes.size(); ++i)
 	{
-		u32 inputSize{layerSizes.begin()[i - 1]}, outputSize{layerSizes.begin()[i]};
+		inputSize  = layerSizes.begin()[i - 1];
+		outputSize = layerSizes.begin()[i];
+
 		mLayers.emplace_back(std::make_unique<DenseLayer>(inputSize, outputSize));
 		mLayers.emplace_back(std::make_unique<ReLULayer>(inputSize, outputSize));
 	}
 
-	mLayers.emplace_back(std::make_unique<SoftMax>(1, 10));
+	mLayers.emplace_back(std::make_unique<SoftMax>(outputSize, 10));
 }
 
 Matrix NeuralNetwork::forward(Matrix input)
 {
 	// input.setRandom();
 	for (auto& ptr : mLayers)
-	{
 		input = ptr->forward(input);
-	}
 
 	return input;
 }
 
-void NeuralNetwork::backward(Matrix batchInputs, Matrix predOutputs, std::span<u8> labels)
+void NeuralNetwork::backward(Matrix predOutputs, std::span<f32> labels)
 {
+	
+	Eigen::Map<RowMajorMatrix> labelMatrixMap{labels.data(), predOutputs.rows(), 10};
+	Matrix dOutput{predOutputs - labelMatrixMap};
+	for (auto it{mLayers.rbegin()}; it != mLayers.rend(); ++it)
+		dOutput = (*it)->backward(dOutput);
+	
 }
 
 void NeuralNetwork::train()
@@ -44,27 +53,48 @@ void NeuralNetwork::train()
 	// header is 16 bytes and is stored in big-endian
 	
 
-	const char* BLACK{"\033[40m"}, *WHITE{"\033[47m"}, *RESET{"\033[0m"};
 	
-	u32 index{Utils::rand(imageBuffer.numberOfItems)};
-	for (usize i{784 * index}; i < 784 * (index + 1); ++i)
-	{
-		if ((i) % 28 == 0 && i != 0)
-			std::println("{}", RESET);
-		// std::print("{}", (i - 16) % 28);
-		std::print("\033[48;2;{};{};{}m  {}", imageBuffer.data[i], imageBuffer.data[i], imageBuffer.data[i], RESET);
-	}
-
+	u32 index{Utils::printImage(imageBuffer.data, {})};
+	
 	std::println("\nNumber is {}", labelBuffer.data[index]);
 	// Matrix input{Matrix::NullaryExpr(100, 784, std::ref(Utils::randFloat))};
 
-	std::vector<f32> batch{Utils::loadBatch(imageBuffer.data)};
-	Eigen::Map<RowMajorMatrix> input{batch.data(), BATCH_SIZE, 784};
-	Matrix output{forward(input)};
 
-	backward(input, output, {labelBuffer.data.data(), BATCH_SIZE});
+	u32 epochs{1u};
+	for (u32 i{}; i < epochs * imageBuffer.numberOfItems; i += BATCH_SIZE)
+	{
+		std::println("i is {}", i);
+		u32 batchSize{ BATCH_SIZE };
+		if (imageBuffer.numberOfItems - i < BATCH_SIZE)
+			batchSize = imageBuffer.numberOfItems - i;
 
-	std::cout << "output is: \n\n " << output << "\n\n";
+		std::vector<f32> batch{Utils::loadBatchImages(imageBuffer.data, i, batchSize)};
+		Eigen::Map<RowMajorMatrix> input{batch.data(), batchSize, 784};
+		Matrix predOutput{forward(input)};
+
+		std::vector<f32> labelBatch{Utils::loadBatchLabels(labelBuffer.data, i, batchSize)};
+		backward(predOutput, labelBatch);
+		applyGradientDescent();
+	}
+	saveData();
+
+	// std::cout << "output is: \n\n " << output << "\n\n";
 
 	
 }
+
+void NeuralNetwork::applyGradientDescent()
+{
+	const f32 learningRate{0.05f};
+	for (auto& layer : mLayers)
+		layer->applyGradientDescent(learningRate);
+}
+
+void NeuralNetwork::saveData()
+{
+	for (const auto& layer : mLayers)
+	{
+		layer->saveData();
+	}
+}
+

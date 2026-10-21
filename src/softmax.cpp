@@ -1,4 +1,6 @@
 #include "softmax.hpp"
+#include <iostream>
+#include <print>
 
 SoftMax::SoftMax(u32 inputSize, u32 outputSize)
 {
@@ -7,35 +9,23 @@ SoftMax::SoftMax(u32 inputSize, u32 outputSize)
 
 Matrix SoftMax::forward(const Matrix& inputs)
 {
-	Matrix inputCopy{inputs};
-
 	f32 sum{};
-	Eigen::VectorXf maxValues{inputCopy.rowwise().maxCoeff()};
-	for (Eigen::Index i{}; i < inputCopy.rows(); ++i)
-	{
-		auto row{inputCopy.row(i)};
-		f32 maxRowValue{maxValues[i]};
-		for (f32& value : row)
-		{
-			value -= maxRowValue;
-			value = std::exp(value);
-		}
-	}
+	Eigen::VectorXf maxValues{inputs.rowwise().maxCoeff()};
 
-	for (Eigen::Index i{}; i < inputCopy.rows(); ++i)
-	{
-		auto row{inputCopy.row(i)};
-		f32 rowSum{row.sum()};
+	Matrix inputCopy{(inputs.colwise() - maxValues).array().exp()};
 
-		for (f32& value : row)
-		{
-			value /= rowSum;
-		}
-	}
+	Eigen::VectorXf rowSums{inputCopy.rowwise().sum()};
+	inputCopy	 = inputCopy.array().colwise() / rowSums.array();
 
 	return inputCopy;
 }
-Matrix SoftMax::backward(const Matrix& inputs, f32 learningRate) 
+
+Matrix SoftMax::backward(const Matrix& dOutputs) 
+{	
+	return dOutputs;
+}
+
+void SoftMax::applyGradientDescent(f32 learningRate)
 {
-	return inputs;	
+	return;
 }

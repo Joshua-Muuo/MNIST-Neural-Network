@@ -15,7 +15,20 @@ Matrix ReLULayer::forward(const Matrix& inputs)
 
 	return inputCopy;
 }
-Matrix ReLULayer::backward(const Matrix& inputs, f32 learningRate) 
+
+Matrix ReLULayer::backward(const Matrix& inputs) 
 {
-	return inputs;	
+	Matrix dInputs{inputs};
+	for (auto& value : dInputs.reshaped())
+	{
+		if (value < 0.0f) value = 0.0f;
+	}
+
+	return dInputs;	
 }
+
+void ReLULayer::applyGradientDescent(f32 learningRate)
+{
+	return;
+}
+
