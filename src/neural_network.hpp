@@ -12,8 +12,11 @@ public:
 	void train();
 private:
 	Matrix forward(Matrix input);
-	void backward(Matrix batchInputs, Matrix predOutputs, std::span<u8> labels);
+	void backward(Matrix predOutputs, std::span<f32> labels);
+	void applyGradientDescent();
+
+	void saveData();
 
 	std::vector<std::unique_ptr<Layer>> mLayers;
-	const u32 BATCH_SIZE{1u};
+	const u32 BATCH_SIZE{128u};
 };
