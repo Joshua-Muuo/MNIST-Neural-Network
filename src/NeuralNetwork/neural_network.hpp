@@ -9,7 +9,11 @@ class NeuralNetwork
 public:
 	NeuralNetwork(std::initializer_list<u32> layerSizes);
 
-	void train();
+	void train(u32 epochs);
+	void testAccuracy();
+	void loadWeightsAndBiases();
+
+	u8 makePrediction(const Matrix& mat);
 private:
 	Matrix forward(Matrix input);
 	void backward(Matrix predOutputs, std::span<f32> labels);

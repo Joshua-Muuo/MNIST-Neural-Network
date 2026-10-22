@@ -1,3 +1,4 @@
+#include <Eigen/Core>
 #include <random>
 #include <optional>
 #include <vector>
@@ -6,6 +7,7 @@
 #include <Eigen/Dense>
 
 using Matrix = Eigen::MatrixXf; 
+using RowMajorMatrix = Eigen::Matrix<f32, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
 namespace Utils
 {
@@ -43,9 +45,13 @@ namespace Utils
 	std::vector<f32> loadBatchImages(std::span<u8> data, u32 startingIndex = 0, u32 batchSize = 100);
 	std::vector<f32> loadBatchLabels(std::span<u8> data, u32 startingIndex = 0, u32 batchSize = 100);
 
+	Matrix loadWeights(const std::string& filename);
 	void saveWeights(const Eigen::MatrixXf& weights, std::string filename = "");
+
+	Eigen::RowVectorXf loadBiases(const std::string& filename);
 	void saveBiases(const Eigen::RowVectorXf& biases, std::string filename = "");
 
 	
-	u32 printImage(std::span<u8> data, std::optional<u32> index);
+	u32 printImage(std::span<u8> data, std::optional<u32> index = std::nullopt);
+	u32 printImage(std::span<f32> data, std::optional<u32> index = std::nullopt);
 }

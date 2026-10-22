@@ -154,6 +154,47 @@ namespace Utils
 		return index.value();
 	}
 
+	u32 printImage(std::span<f32> data, std::optional<u32> index)
+	{
+		u32 NUMBER_OF_PIXELS{784};
+		const usize numberOfImages{data.size() / NUMBER_OF_PIXELS};
+		if (!index.has_value())
+			index = rand(numberOfImages);
+
+		std::vector<u8> imageBuffer(NUMBER_OF_PIXELS, 0);
+		for (usize i{}; i < NUMBER_OF_PIXELS; ++i)
+		{
+			imageBuffer[i] = 256 * data[NUMBER_OF_PIXELS * index.value() + i];
+		}
+
+		printImage(imageBuffer, 0);
+		return index.value();
+	}
+
+	Matrix loadWeights(const std::string& filename)
+	{
+		
+		std::ifstream file{filename, std::ios::binary};
+		
+		i64 magicNumber{};
+		file.read(reinterpret_cast<char*>(&magicNumber), sizeof(magicNumber));
+
+		// if (magicNumber != 0x12344321) return;
+
+		i64 rows, cols;
+		file.read(reinterpret_cast<char*>(&rows), sizeof(rows));
+		file.seekg(sizeof(i64), std::ios_base::cur);
+
+		file.read(reinterpret_cast<char*>(&cols), sizeof(cols));
+		file.seekg(sizeof(i64), std::ios_base::cur);
+
+		std::vector<f32> buffer(rows * cols * sizeof(f32), 0.0f);
+		file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+
+		Eigen::Map<RowMajorMatrix> mapMatrix(buffer.data(), rows, cols);
+		return mapMatrix;
+}
+
 	void saveWeights(const Eigen::MatrixXf& weights, std::string filename)
 	{
 		if (filename == "")
@@ -167,6 +208,29 @@ namespace Utils
 		std::println("saving weights to layers/{}", filename);
 
 		file.write(reinterpret_cast<const char*>(weights.data()), weights.size() * sizeof(f32));
+	}
+
+	Eigen::RowVectorXf loadBiases(const std::string& filename)
+	{
+		std::ifstream file{filename, std::ios::binary};
+		
+		i64 magicNumber{};
+		file.read(reinterpret_cast<char*>(&magicNumber), sizeof(magicNumber));
+
+		// if (magicNumber != 0x12344321) return;
+
+		i64 rows, cols;
+		file.read(reinterpret_cast<char*>(&rows), sizeof(rows));
+		file.seekg(sizeof(i64), std::ios_base::cur);
+
+		file.read(reinterpret_cast<char*>(&cols), sizeof(cols));
+		file.seekg(sizeof(i64), std::ios_base::cur);
+
+		std::vector<f32> buffer(rows * cols * sizeof(f32), 0.0f);
+		file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
+
+		Eigen::Map<RowMajorMatrix> mapMatrix(buffer.data(), rows, cols);
+		return mapMatrix;
 	}
 
 	void saveBiases(const Eigen::RowVectorXf& biases, std::string filename)

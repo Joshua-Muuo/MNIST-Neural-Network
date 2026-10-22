@@ -8,7 +8,6 @@
 #include <print>
 #include "utils.hpp"
 
-using RowMajorMatrix = Eigen::Matrix<f32, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 using RowMajorMatrixU = Eigen::Matrix<u32, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
 NeuralNetwork::NeuralNetwork(std::initializer_list<u32> layerSizes)
@@ -45,7 +44,7 @@ void NeuralNetwork::backward(Matrix predOutputs, std::span<f32> labels)
 	
 }
 
-void NeuralNetwork::train()
+void NeuralNetwork::train(u32 epochs)
 {
 	auto imageBuffer = Utils::loadImage("data/train-images-idx3-ubyte.gz");
 	auto labelBuffer = Utils::loadLabel("data/train-labels-idx1-ubyte.gz");
@@ -60,7 +59,6 @@ void NeuralNetwork::train()
 	// Matrix input{Matrix::NullaryExpr(100, 784, std::ref(Utils::randFloat))};
 
 
-	u32 epochs{1u};
 	for (u32 i{}; i < epochs * imageBuffer.numberOfItems; i += BATCH_SIZE)
 	{
 		std::println("i is {}", i);
@@ -90,6 +88,20 @@ void NeuralNetwork::applyGradientDescent()
 		layer->applyGradientDescent(learningRate);
 }
 
+u8 NeuralNetwork::makePrediction(const Matrix& mat)
+{
+	Matrix predOutput{forward(mat)};
+	f32 maxValue{-1.0f};
+	usize maxIndex{};
+	for (usize i{}; i < predOutput.cols(); ++i)
+	{
+		f32 value{predOutput(0, i)};
+		if (value > maxValue) maxIndex = i;
+	}
+
+	return maxIndex;
+}
+
 void NeuralNetwork::saveData()
 {
 	for (const auto& layer : mLayers)
@@ -98,3 +110,35 @@ void NeuralNetwork::saveData()
 	}
 }
 
+void NeuralNetwork::loadWeightsAndBiases()
+{
+	DenseLayer* denseLayer1{dynamic_cast<DenseLayer*>(mLayers[0].get())};
+	DenseLayer* denseLayer2{dynamic_cast<DenseLayer*>(mLayers[2].get())};
+
+	denseLayer1->setWeights(Utils::loadWeights("layers/dense_layer_weights_100x784"));
+	denseLayer1->setBiases(Utils::loadBiases("layers/dense_layer_biases_1x100"));
+
+	denseLayer2->setWeights(Utils::loadWeights("layers/dense_layer_weights_10x100"));
+	denseLayer2->setBiases(Utils::loadBiases("layers/dense_layer_biases_1x10"));
+
+}
+
+void NeuralNetwork::testAccuracy()
+{
+	loadWeightsAndBiases();
+
+	auto imagesData = Utils::loadImage("data/t10k-images-idx3-ubyte.gz");
+	auto labelsData = Utils::loadLabel("data/t10k-labels-idx1-ubyte.gz");
+
+	std::vector<f32> imagesBuffer{Utils::loadBatchImages(imagesData.data, 0, imagesData.numberOfItems)};
+
+	Eigen::Map<RowMajorMatrix> images{imagesBuffer.data(), imagesData.numberOfItems, 784};
+	u32 randImageIndex{Utils::printImage(imagesBuffer)};
+
+
+	u8 prediction{makePrediction(images.row(randImageIndex))};
+
+	std::println("actual: {}", labelsData.data[randImageIndex]);
+	std::println("prediction: {}", prediction);
+	
+}

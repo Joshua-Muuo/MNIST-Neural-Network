@@ -1,9 +1,7 @@
-#include "neural_network.hpp"
+#include "NeuralNetwork/neural_network.hpp"
 #include <print>
 #include <iostream>
 #include <Eigen/Dense>
-
-#include "utils.hpp"
 
 int main()
 {
@@ -15,7 +13,9 @@ int main()
 	// TODO: Create Util namespace holding global random number generator
 	// TODO: Download MNIST data to project
 	// TODO: Create functions to load MNIST data 
-	nn.train();
+	
+	// nn.train(4);
+	nn.testAccuracy();
 
 
 	return 0;
