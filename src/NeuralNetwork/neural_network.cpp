@@ -19,7 +19,8 @@ NeuralNetwork::NeuralNetwork(std::initializer_list<u32> layerSizes)
 		outputSize = layerSizes.begin()[i];
 
 		mLayers.emplace_back(std::make_unique<DenseLayer>(inputSize, outputSize));
-		mLayers.emplace_back(std::make_unique<ReLULayer>(inputSize, outputSize));
+		if (i < layerSizes.size() - 1)
+			mLayers.emplace_back(std::make_unique<ReLULayer>(inputSize, outputSize));
 	}
 
 	mLayers.emplace_back(std::make_unique<SoftMax>(outputSize, 10));
@@ -59,20 +60,21 @@ void NeuralNetwork::train(u32 epochs)
 	// Matrix input{Matrix::NullaryExpr(100, 784, std::ref(Utils::randFloat))};
 
 
-	for (u32 i{}; i < epochs * imageBuffer.numberOfItems; i += BATCH_SIZE)
+	for (i32 epoch{}; epoch < epochs; ++epoch)
 	{
-		std::println("i is {}", i);
-		u32 batchSize{ BATCH_SIZE };
-		if (imageBuffer.numberOfItems - i < BATCH_SIZE)
-			batchSize = imageBuffer.numberOfItems - i;
+		for (u32 i{}; i < imageBuffer.numberOfItems; i += BATCH_SIZE)
+		{
+			std::println("i is {}", i);
+			u32 batchSize{ std::min(BATCH_SIZE, imageBuffer.numberOfItems - i) };
 
-		std::vector<f32> batch{Utils::loadBatchImages(imageBuffer.data, i, batchSize)};
-		Eigen::Map<RowMajorMatrix> input{batch.data(), batchSize, 784};
-		Matrix predOutput{forward(input)};
+			std::vector<f32> batch{Utils::loadBatchImages(imageBuffer.data, i, batchSize)};
+			Eigen::Map<RowMajorMatrix> input{batch.data(), batchSize, Utils::PIXELS_PER_IMAGE};
+			Matrix predOutput{forward(input)};
 
-		std::vector<f32> labelBatch{Utils::loadBatchLabels(labelBuffer.data, i, batchSize)};
-		backward(predOutput, labelBatch);
-		applyGradientDescent();
+			std::vector<f32> labelBatch{Utils::loadBatchLabels(labelBuffer.data, i, batchSize)};
+			backward(predOutput, labelBatch);
+			applyGradientDescent();
+		}
 	}
 	saveData();
 
@@ -83,7 +85,7 @@ void NeuralNetwork::train(u32 epochs)
 
 void NeuralNetwork::applyGradientDescent()
 {
-	const f32 learningRate{0.05f};
+	const f32 learningRate{0.01f};
 	for (auto& layer : mLayers)
 		layer->applyGradientDescent(learningRate);
 }
@@ -96,7 +98,11 @@ u8 NeuralNetwork::makePrediction(const Matrix& mat)
 	for (usize i{}; i < predOutput.cols(); ++i)
 	{
 		f32 value{predOutput(0, i)};
-		if (value > maxValue) maxIndex = i;
+		if (value > maxValue) 
+		{
+			maxValue = value;
+			maxIndex = i;
+		}
 	}
 
 	return maxIndex;
@@ -134,11 +140,16 @@ void NeuralNetwork::testAccuracy()
 
 	Eigen::Map<RowMajorMatrix> images{imagesBuffer.data(), imagesData.numberOfItems, 784};
 	u32 randImageIndex{Utils::printImage(imagesBuffer)};
+	std::println("prediction: {}", makePrediction(images.row(randImageIndex)));
+	std::println("actual: {}\n\n", labelsData.data[randImageIndex]);
 
+	f32 correct{};
+	for (usize i{}; i < imagesData.numberOfItems; ++i) 
+	{
+		u8 prediction{makePrediction(images.row(i))};
+		if (prediction == labelsData.data[i]) correct += 1;
+	}
 
-	u8 prediction{makePrediction(images.row(randImageIndex))};
+	std::println("accuracy: {:2f}", correct / imagesData.numberOfItems);
 
-	std::println("actual: {}", labelsData.data[randImageIndex]);
-	std::println("prediction: {}", prediction);
-	
 }
