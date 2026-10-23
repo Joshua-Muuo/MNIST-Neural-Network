@@ -10,6 +10,7 @@
 namespace Utils
 {
 	std::mt19937 gen{std::random_device()()};
+	const u32 PIXELS_PER_IMAGE{784};
 
 	f32 randFloat()
 	{
@@ -29,7 +30,7 @@ namespace Utils
 		// file.read((char*)compressedFile.data(), fileSize);
 
 
-		const u32 chunkSize{4096};
+		const u32 chunkSize{4096u};
 		output.resize(chunkSize * 4);
 
 		gzFile file{gzopen(filename.c_str(), "r")};
@@ -51,11 +52,8 @@ namespace Utils
 			}
 			else if (bytes == 0) break;
 			totalBytesRead += bytes;
-
 		}
 		gzclose(file);
-		
-	
 
 		output.resize(totalBytesRead);
 		return output;
@@ -67,20 +65,20 @@ namespace Utils
 		output.data = loadGZipFile(filename);
 
 		// header is 16 bytes and is stored in big-endian
-		const u32 HEADER_SIZE{16};
+		const u32 HEADER_BYTES{16u};
+		const u32 HEADER_UINT_COUNT{HEADER_BYTES / sizeof(u32)};
 
-		std::span<u32> header{(u32*)output.data.data(), HEADER_SIZE / 4};
+
+		std::span<u32> header{reinterpret_cast<u32*>(output.data.data()), HEADER_UINT_COUNT};
 		for (u32& value : header)
 			value = std::byteswap(value);
-
 
 		output.magicNumber = header[0];
 		output.numberOfItems = header[1];
 		output.rows = header[2];
 		output.cols = header[3];
 
-		output.data.erase(output.data.begin(), output.data.begin() + HEADER_SIZE);
-
+		output.data.erase(output.data.begin(), output.data.begin() + HEADER_BYTES);
 		return output;
 	}
 
@@ -90,35 +88,43 @@ namespace Utils
 		output.data = loadGZipFile(filename);
 
 		// header is 8 bytes and is stored in big-endian
-		const u32 HEADER_SIZE{8};
 
-		std::span<u32> header{(u32*)output.data.data(), HEADER_SIZE};
+		const u32 HEADER_BYTES{8u};
+		const u32 HEADER_UINT_COUNT{HEADER_BYTES / sizeof(u32)};
+
+		std::span<u32> header{reinterpret_cast<u32*>(output.data.data()), HEADER_UINT_COUNT};
 		for (u32& value : header)
 			value = std::byteswap(value);
 
-		output.magicNumber = header[0];
-		output.numberOfItems = header[1];
-		output.rows = std::nullopt; 
-		output.cols = std::nullopt;
+		std::println("header[0] is {}, 1 is {}", header[0], header[1]);
 
-		output.data.erase(output.data.begin(), output.data.begin() + HEADER_SIZE);
+		output.magicNumber   = header[0];
+		output.numberOfItems = header[1];
+		output.rows	         = std::nullopt; 
+		output.cols          = std::nullopt;
+
+		output.data.erase(output.data.begin(), output.data.begin() + HEADER_BYTES);
 		return output;
 	}
 	
 	std::vector<f32> loadBatchImages(std::span<u8> data, u32 startingIndex, u32 batchSize)
 	{
 		std::vector<f32> output;
-		output.reserve(batchSize * 784);
-		// std::copy(
-		// 		data.begin() + startingIndex, 
-		// 		data.begin() + startingIndex + batchSize, 
-		// 		output.begin()
-		// 		);
-		//
+		output.reserve(batchSize * PIXELS_PER_IMAGE);
 
-		for (const u8& value : data)
-			output.push_back((f32)value / 255.0f);
+		usize start{startingIndex * PIXELS_PER_IMAGE};
+		usize numberOfPixels{batchSize * PIXELS_PER_IMAGE};
+		if (start + numberOfPixels > data.size())
+			numberOfPixels = data.size() - start;
 
+		// std::println("startingIndex is {}, batchSize is {}", startingIndex, batchSize);
+		// std::println("start is {}, num pixels is {}", start, numberOfPixels);
+		// std::println("size of span is {}", data.size());
+		std::span<u8> batch{data.subspan(start, numberOfPixels)};
+		for (const u8& value : batch)
+			output.push_back(value / 255.0f);
+
+		std::println("end of loadBatchImages");
 		return output;
 	}
 
@@ -137,13 +143,12 @@ namespace Utils
 
 	u32 printImage(std::span<u8> data, std::optional<u32> index)
 	{
-		u32 NUMBER_OF_PIXELS{784};
-		const usize numberOfImages{data.size() / NUMBER_OF_PIXELS};
+		const usize numberOfImages{data.size() / PIXELS_PER_IMAGE};
 		if (!index.has_value())
 			index = rand(numberOfImages);
 
 		static const char* BLACK{"\033[40m"}, *WHITE{"\033[47m"}, *RESET{"\033[0m"};
-		for (usize i{NUMBER_OF_PIXELS * index.value()}; i < NUMBER_OF_PIXELS * (index.value() + 1); ++i)
+		for (usize i{PIXELS_PER_IMAGE * index.value()}; i < PIXELS_PER_IMAGE * (index.value() + 1); ++i)
 		{
 			if ((i) % 28 == 0 && i != 0)
 				std::println("{}", RESET);
@@ -151,20 +156,26 @@ namespace Utils
 			std::print("\033[48;2;{};{};{}m  {}", data[i], data[i], data[i], RESET);
 		}
 
+		std::println();
+
 		return index.value();
 	}
 
 	u32 printImage(std::span<f32> data, std::optional<u32> index)
 	{
-		u32 NUMBER_OF_PIXELS{784};
-		const usize numberOfImages{data.size() / NUMBER_OF_PIXELS};
+		const usize numberOfImages{data.size() / PIXELS_PER_IMAGE};
 		if (!index.has_value())
-			index = rand(numberOfImages);
-
-		std::vector<u8> imageBuffer(NUMBER_OF_PIXELS, 0);
-		for (usize i{}; i < NUMBER_OF_PIXELS; ++i)
 		{
-			imageBuffer[i] = 256 * data[NUMBER_OF_PIXELS * index.value() + i];
+			index = rand(numberOfImages);
+			std::println("generating rand value of printImage, rand {}", rand(numberOfImages));
+		}
+
+		std::vector<u8> imageBuffer(PIXELS_PER_IMAGE, 0);
+
+		std::println("starting index for printImage is {}", *index);
+		for (usize i{}; i < PIXELS_PER_IMAGE; ++i)
+		{
+			imageBuffer[i] = 256 * data[(*index) * PIXELS_PER_IMAGE + i];
 		}
 
 		printImage(imageBuffer, 0);
@@ -191,7 +202,7 @@ namespace Utils
 		std::vector<f32> buffer(rows * cols * sizeof(f32), 0.0f);
 		file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
 
-		Eigen::Map<RowMajorMatrix> mapMatrix(buffer.data(), rows, cols);
+		Eigen::Map<Matrix> mapMatrix(buffer.data(), rows, cols);
 		return mapMatrix;
 }
 
@@ -201,7 +212,7 @@ namespace Utils
 			filename = std::format("dense_layer_weights_{}x{}", weights.rows(), weights.cols());
 		std::ofstream file{"layers/" + filename, std::ios::binary};		
 
-		std::array<i64, 6> data{0x12344321, weights.rows(), 0u, weights.cols(), 0u};
+		std::array<i64, 5> data{0x12344321, weights.rows(), 0u, weights.cols(), 0u};
 		file.write(reinterpret_cast<const char*>(data.data()), data.size() * sizeof(i64));
 		// file << 0x12344321 << weights.rows() << 0u << weights.cols() << 0u;
 
@@ -229,7 +240,7 @@ namespace Utils
 		std::vector<f32> buffer(rows * cols * sizeof(f32), 0.0f);
 		file.read(reinterpret_cast<char*>(buffer.data()), buffer.size());
 
-		Eigen::Map<RowMajorMatrix> mapMatrix(buffer.data(), rows, cols);
+		Eigen::Map<Matrix> mapMatrix(buffer.data(), rows, cols);
 		return mapMatrix;
 	}
 

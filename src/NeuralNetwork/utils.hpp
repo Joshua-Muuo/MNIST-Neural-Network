@@ -20,22 +20,23 @@ namespace Utils
 	};
 
 	extern std::mt19937 gen;
+	const extern u32 PIXELS_PER_IMAGE;
 
 	// returns a random f32 value in the interval [0.0, 1.0)
 	f32 randFloat();
 
-	// returns a random value in the interval [0, a)
+	// returns a random value in the interval [0, a) of type T
 	template<typename T>
 	T rand(T a)
 	{
 		return static_cast<T>(a * randFloat());
 	}
 
-	// returns a random value in the interval [a, b)
+	// returns a random value in the interval [a, b) of type T
 	template<typename T>
 	T rand(T a, T b)	
 	{
-		return static_cast<T>((b - a) * randFloat()) + a;
+		return a + rand(b - a);
 	}
 
 
