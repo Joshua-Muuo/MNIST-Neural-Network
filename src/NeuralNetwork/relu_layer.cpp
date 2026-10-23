@@ -7,24 +7,16 @@ ReLULayer::ReLULayer(u32 inputSize, u32 outputSize)
 
 Matrix ReLULayer::forward(const Matrix& inputs)
 {
-	Matrix inputCopy{inputs};
-	for (auto& value : inputCopy.reshaped())
-	{
-		if (value < 0.0f) value = 0.0f;
-	}
-
-	return inputCopy;
+	mAPrev = inputs;
+	return inputs.unaryExpr([](f32 x) { return x >= 0.0f ? x : 0.1f * x; } );
 }
 
 Matrix ReLULayer::backward(const Matrix& inputs) 
 {
-	Matrix dInputs{inputs};
-	for (auto& value : dInputs.reshaped())
-	{
-		if (value < 0.0f) value = 0.0f;
-	}
-
-	return dInputs;	
+	return inputs.binaryExpr(mAPrev, 
+			[](f32 dy, f32 x) 
+			{ return x > 0.0f ? dy : 0.0f; 
+			});	
 }
 
 void ReLULayer::applyGradientDescent(f32 learningRate)

@@ -4,9 +4,11 @@
 #include <print>
 
 DenseLayer::DenseLayer(u32 inputSize, u32 outputSize):
-mWeights{Matrix::NullaryExpr(outputSize, inputSize, [](){return Utils::randFloat() * 2 - 1; })}, 
 mBiases{outputSize}
 {
+	f32 limit{std::sqrt(6.0f / inputSize)};
+	mWeights = Matrix::NullaryExpr(outputSize, inputSize, 
+			[&limit](){return Utils::rand(-limit, limit); }); 
 	// mWeights.setRandom();
 	// for (auto& x : mWeights.reshaped())
 		// x = Utils::randFloat();
@@ -15,11 +17,8 @@ mBiases{outputSize}
 
 Matrix DenseLayer::forward(const Matrix& inputs)
 {
-
 	mInputs = inputs;
 	auto c{(i32)(inputs.cols())};
-	std::println("inputs col is {}", c);
-	std::println("weights transpose rows is {}", (u32)mWeights.cols());
 
 	Matrix product{inputs * mWeights.transpose()};
 	product.rowwise() += mBiases;
@@ -30,7 +29,7 @@ Matrix DenseLayer::forward(const Matrix& inputs)
 Matrix DenseLayer::backward(const Matrix& dOutputs)
 {    
 	const f32 batchSize{static_cast<f32>(dOutputs.rows())};
-	mDWeights.noalias() = (mInputs.transpose() * dOutputs).transpose() / batchSize; 
+	mDWeights.noalias() = (dOutputs.transpose() * mInputs) / batchSize; 
 	mDBiases.noalias()  = dOutputs.colwise().sum() / batchSize;
 
 	return dOutputs * mWeights;
