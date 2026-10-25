@@ -6,9 +6,9 @@
 DenseLayer::DenseLayer(u32 inputSize, u32 outputSize):
 mBiases{outputSize}
 {
-	f32 limit{std::sqrt(6.0f / inputSize)};
+	f32 stddev{std::sqrt(2.0f / inputSize)};
 	mWeights = Matrix::NullaryExpr(outputSize, inputSize, 
-			[&limit](){return Utils::rand(-limit, limit); }); 
+			[&stddev](){return Utils::normalDist(stddev); }); 
 	// mWeights.setRandom();
 	// for (auto& x : mWeights.reshaped())
 		// x = Utils::randFloat();

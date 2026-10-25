@@ -18,6 +18,12 @@ public:
 	void setWeights(const Matrix& mat);
 	void setBiases(const Eigen::RowVectorXf& row);
 
+	u32 inputSize() const { return mWeights.cols(); }
+	u32 outputSize() const { return mWeights.rows(); }
+	
+	u32 rows() const { return mWeights.rows(); }
+	u32 cols() const { return mWeights.cols(); }
+
 
 private:
 	Matrix mWeights, mDWeights, mAPrev;
