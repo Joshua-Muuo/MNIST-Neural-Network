@@ -18,6 +18,12 @@ namespace Utils
 		return dist(gen);
 	}
 
+	f32 normalDistFloat()
+	{
+		static std::normal_distribution<f32> dist(0.0f, 1.0f);
+		return dist(gen);
+	}
+
 	std::vector<u8> loadGZipFile(const std::string& filename)
 	{	
 		std::vector<u8> output, compressedFile;		

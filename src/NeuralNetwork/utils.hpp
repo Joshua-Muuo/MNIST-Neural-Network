@@ -39,6 +39,15 @@ namespace Utils
 		return a + rand(b - a);
 	}
 
+	// returns a random normally distributed float with a mean of 0.0f and stddev of 1.0f
+	f32 normalDistFloat();
+
+	// returns a random normally distributed value of type T 
+	template<typename T>
+	T normalDist(T stddev, T mean = 0)
+	{
+		return mean + static_cast<T>(stddev * normalDistFloat());
+	}
 
 	// Matrix matrixDot(Matrix& a, const Matrix b);
 	Data loadImage(const std::string& filename);
