@@ -50,8 +50,8 @@ namespace Utils
 	}
 
 	// Matrix matrixDot(Matrix& a, const Matrix b);
-	Data loadImage(const std::string& filename);
-	Data loadLabel(const std::string& filename);
+	Data loadImages(const std::string& filename);
+	Data loadLabels(const std::string& filename);
 	std::vector<f32> loadBatchImages(std::span<u8> data, u32 startingIndex = 0, u32 batchSize = 100);
 	std::vector<f32> loadBatchLabels(std::span<u8> data, u32 startingIndex = 0, u32 batchSize = 100);
 

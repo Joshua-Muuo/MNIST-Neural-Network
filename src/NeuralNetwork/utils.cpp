@@ -65,7 +65,7 @@ namespace Utils
 		return output;
 	}
 
-	Data loadImage(const std::string& filename)
+	Data loadImages(const std::string& filename)
 	{
 		Data output;
 		output.data = loadGZipFile(filename);
@@ -88,7 +88,7 @@ namespace Utils
 		return output;
 	}
 
-	Data loadLabel(const std::string& filename)
+	Data loadLabels(const std::string& filename)
 	{
 		Data output;
 		output.data = loadGZipFile(filename);
@@ -101,8 +101,6 @@ namespace Utils
 		std::span<u32> header{reinterpret_cast<u32*>(output.data.data()), HEADER_UINT_COUNT};
 		for (u32& value : header)
 			value = std::byteswap(value);
-
-		std::println("header[0] is {}, 1 is {}", header[0], header[1]);
 
 		output.magicNumber   = header[0];
 		output.numberOfItems = header[1];
@@ -130,7 +128,6 @@ namespace Utils
 		for (const u8& value : batch)
 			output.push_back(value / 255.0f);
 
-		std::println("end of loadBatchImages");
 		return output;
 	}
 
@@ -222,7 +219,7 @@ namespace Utils
 		file.write(reinterpret_cast<const char*>(data.data()), data.size() * sizeof(i64));
 		// file << 0x12344321 << weights.rows() << 0u << weights.cols() << 0u;
 
-		std::println("saving weights to layers/{}", filename);
+		std::println("saving weights to models/{}", filename);
 
 		file.write(reinterpret_cast<const char*>(weights.data()), weights.size() * sizeof(f32));
 	}
