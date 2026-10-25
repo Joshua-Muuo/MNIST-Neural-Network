@@ -17,8 +17,7 @@ mBiases{outputSize}
 
 Matrix DenseLayer::forward(const Matrix& inputs)
 {
-	mInputs = inputs;
-	auto c{(i32)(inputs.cols())};
+	mAPrev = inputs;
 
 	Matrix product{inputs * mWeights.transpose()};
 	product.rowwise() += mBiases;
@@ -29,7 +28,7 @@ Matrix DenseLayer::forward(const Matrix& inputs)
 Matrix DenseLayer::backward(const Matrix& dOutputs)
 {    
 	const f32 batchSize{static_cast<f32>(dOutputs.rows())};
-	mDWeights.noalias() = (dOutputs.transpose() * mInputs) / batchSize; 
+	mDWeights.noalias() = (dOutputs.transpose() * mAPrev) / batchSize; 
 	mDBiases.noalias()  = dOutputs.colwise().sum() / batchSize;
 
 	return dOutputs * mWeights;

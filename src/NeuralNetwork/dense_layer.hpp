@@ -20,6 +20,6 @@ public:
 
 
 private:
-	Matrix mWeights, mDWeights, mInputs;
+	Matrix mWeights, mDWeights, mAPrev;
 	Eigen::RowVectorXf mBiases, mDBiases;
 };
