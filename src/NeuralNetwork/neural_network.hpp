@@ -13,7 +13,8 @@ public:
 	void testAccuracy();
 	void loadWeightsAndBiases();
 
-	u8 makePrediction(const Matrix& mat);
+	u32 makePrediction(const Matrix& mat);
+	Eigen::VectorXi makePredictions(const Matrix& mat);
 private:
 	Matrix forward(Matrix input);
 	void backward(Matrix predOutputs, std::span<f32> labels);

@@ -47,34 +47,35 @@ void NeuralNetwork::backward(Matrix predOutputs, std::span<f32> labels)
 
 void NeuralNetwork::train(u32 epochs)
 {
-	auto imageBuffer = Utils::loadImage("data/train-images-idx3-ubyte.gz");
-	auto labelBuffer = Utils::loadLabel("data/train-labels-idx1-ubyte.gz");
+	Utils::Data trainingImages{Utils::loadImage("data/train-images-idx3-ubyte.gz")};
+	Utils::Data trainingLabels{Utils::loadLabel("data/train-labels-idx1-ubyte.gz")};
 
 	// header is 16 bytes and is stored in big-endian
 	
 
 	
-	u32 index{Utils::printImage(imageBuffer.data, {})};
+	u32 index{Utils::printImage(trainingImages.data, {})};
 	
-	std::println("\nNumber is {}", labelBuffer.data[index]);
+	std::println("\nNumber is {}", trainingLabels.data[index]);
 	// Matrix input{Matrix::NullaryExpr(100, 784, std::ref(Utils::randFloat))};
 
 
-	for (i32 epoch{}; epoch < epochs; ++epoch)
+	for (u32 epoch{}; epoch < epochs; ++epoch)
 	{
-		for (u32 i{}; i < imageBuffer.numberOfItems; i += BATCH_SIZE)
+		for (u32 i{}; i < trainingImages.numberOfItems; i += BATCH_SIZE)
 		{
-			std::println("i is {}", i);
-			u32 batchSize{ std::min(BATCH_SIZE, imageBuffer.numberOfItems - i) };
+			u32 batchSize{ std::min(BATCH_SIZE, trainingImages.numberOfItems - i) };
 
-			std::vector<f32> batch{Utils::loadBatchImages(imageBuffer.data, i, batchSize)};
+			std::vector<f32> batch{Utils::loadBatchImages(trainingImages.data, i, batchSize)};
 			Eigen::Map<RowMajorMatrix> input{batch.data(), batchSize, Utils::PIXELS_PER_IMAGE};
 			Matrix predOutput{forward(input)};
 
-			std::vector<f32> labelBatch{Utils::loadBatchLabels(labelBuffer.data, i, batchSize)};
+			std::vector<f32> labelBatch{Utils::loadBatchLabels(trainingLabels.data, i, batchSize)};
 			backward(predOutput, labelBatch);
 			applyGradientDescent();
 		}
+
+		std::println("End of epoch {}", epoch + 1);
 	}
 	saveData();
 
@@ -90,22 +91,24 @@ void NeuralNetwork::applyGradientDescent()
 		layer->applyGradientDescent(learningRate);
 }
 
-u8 NeuralNetwork::makePrediction(const Matrix& mat)
+u32 NeuralNetwork::makePrediction(const Matrix& mat)
 {
 	Matrix predOutput{forward(mat)};
-	f32 maxValue{-1.0f};
-	usize maxIndex{};
-	for (usize i{}; i < predOutput.cols(); ++i)
-	{
-		f32 value{predOutput(0, i)};
-		if (value > maxValue) 
-		{
-			maxValue = value;
-			maxIndex = i;
-		}
-	}
+	Eigen::Index predictedDigit{};
 
-	return maxIndex;
+	predOutput.row(0).maxCoeff(&predictedDigit);
+	return predictedDigit;
+}
+
+Eigen::VectorXi NeuralNetwork::makePredictions(const Matrix& mat)
+{
+	Matrix predOutputs{forward(mat)};
+	Eigen::VectorXi maxIndices{mat.rows()};
+
+	for (usize i{}; i < mat.rows(); ++i)
+		mat.row(i).maxCoeff(&maxIndices[i]);
+	
+	return maxIndices;
 }
 
 void NeuralNetwork::saveData()
@@ -133,23 +136,27 @@ void NeuralNetwork::testAccuracy()
 {
 	loadWeightsAndBiases();
 
-	auto imagesData = Utils::loadImage("data/t10k-images-idx3-ubyte.gz");
-	auto labelsData = Utils::loadLabel("data/t10k-labels-idx1-ubyte.gz");
+	Utils::Data testingImages{Utils::loadImage("data/t10k-images-idx3-ubyte.gz")};
+	Utils::Data testingLabels{Utils::loadLabel("data/t10k-labels-idx1-ubyte.gz")};
 
-	std::vector<f32> imagesBuffer{Utils::loadBatchImages(imagesData.data, 0, imagesData.numberOfItems)};
+	std::vector<f32> imagesBuffer{Utils::loadBatchImages(testingImages.data, 0, testingImages.numberOfItems)};
 
-	Eigen::Map<RowMajorMatrix> images{imagesBuffer.data(), imagesData.numberOfItems, 784};
+	Eigen::Map<RowMajorMatrix> images{imagesBuffer.data(), testingImages.numberOfItems, 784};
 	u32 randImageIndex{Utils::printImage(imagesBuffer)};
 	std::println("prediction: {}", makePrediction(images.row(randImageIndex)));
-	std::println("actual: {}\n\n", labelsData.data[randImageIndex]);
+	std::println("actual: {}\n\n", testingLabels.data[randImageIndex]);
 
 	f32 correct{};
-	for (usize i{}; i < imagesData.numberOfItems; ++i) 
+
+	for (u32 i{}; i < testingImages.numberOfItems; ++i) 
 	{
-		u8 prediction{makePrediction(images.row(i))};
-		if (prediction == labelsData.data[i]) correct += 1;
+		u32 batchSize{ std::min(BATCH_SIZE, testingImages.numberOfItems - i) };
+		Eigen::Map<const Eigen::VectorX<u8>> correctLabels{testingLabels.data.data(), batchSize};
+		Eigen::VectorX<u8> predictions{makePredictions(images.row(i))};
+
+		correct += (predictions.array() == correctLabels.array()).count();
 	}
 
-	std::println("accuracy: {:2f}", correct / imagesData.numberOfItems);
+	std::println("accuracy: {:2f}", correct / testingImages.numberOfItems);
 
 }
