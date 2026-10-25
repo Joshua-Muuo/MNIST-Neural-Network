@@ -2,6 +2,7 @@
 #include "dense_layer.hpp"
 #include "relu_layer.hpp"
 #include "softmax.hpp"
+#include <chrono>
 #include <iostream>
 #include <iterator>
 #include <memory>
@@ -26,7 +27,7 @@ NeuralNetwork::NeuralNetwork(std::initializer_list<u32> layerSizes)
 	mLayers.emplace_back(std::make_unique<SoftMax>(outputSize, 10));
 }
 
-Matrix NeuralNetwork::forward(Matrix input)
+Matrix NeuralNetwork::forward(Matrix input) const
 {
 	// input.setRandom();
 	for (auto& ptr : mLayers)
@@ -35,7 +36,16 @@ Matrix NeuralNetwork::forward(Matrix input)
 	return input;
 }
 
-void NeuralNetwork::backward(Matrix predOutputs, std::span<f32> labels)
+Matrix NeuralNetwork::forwardWithoutSoftmax(Matrix input) const
+{
+	if (mLayers.empty()) return input;
+	for (auto it{mLayers.begin()}; it != mLayers.end() - 1; ++it)
+		input = (*it)->forward(input);
+
+	return input;
+}
+
+void NeuralNetwork::backward(Matrix predOutputs, std::span<f32> labels) const
 {
 	
 	Eigen::Map<RowMajorMatrix> labelMatrixMap{labels.data(), predOutputs.rows(), 10};
@@ -47,8 +57,8 @@ void NeuralNetwork::backward(Matrix predOutputs, std::span<f32> labels)
 
 void NeuralNetwork::train(u32 epochs)
 {
-	Utils::Data trainingImages{Utils::loadImage("data/train-images-idx3-ubyte.gz")};
-	Utils::Data trainingLabels{Utils::loadLabel("data/train-labels-idx1-ubyte.gz")};
+	Utils::Data trainingImages{Utils::loadImages("data/train-images-idx3-ubyte.gz")};
+	Utils::Data trainingLabels{Utils::loadLabels("data/train-labels-idx1-ubyte.gz")};
 
 	// header is 16 bytes and is stored in big-endian
 	
@@ -91,27 +101,29 @@ void NeuralNetwork::applyGradientDescent()
 		layer->applyGradientDescent(learningRate);
 }
 
-u32 NeuralNetwork::makePrediction(const Matrix& mat)
+u32 NeuralNetwork::makePrediction(const Matrix& mat) const
 {
-	Matrix predOutput{forward(mat)};
+	
+	Matrix predOutput{forwardWithoutSoftmax(mat)};
 	Eigen::Index predictedDigit{};
 
 	predOutput.row(0).maxCoeff(&predictedDigit);
 	return predictedDigit;
 }
 
-Eigen::VectorXi NeuralNetwork::makePredictions(const Matrix& mat)
+Eigen::VectorXi NeuralNetwork::makePredictions(const Matrix& mat) const
 {
-	Matrix predOutputs{forward(mat)};
+
+	Matrix predOutputs{forwardWithoutSoftmax(mat)};
 	Eigen::VectorXi maxIndices{mat.rows()};
 
 	for (usize i{}; i < mat.rows(); ++i)
-		mat.row(i).maxCoeff(&maxIndices[i]);
+		predOutputs.row(i).maxCoeff(&maxIndices[i]);
 	
 	return maxIndices;
 }
 
-void NeuralNetwork::saveData()
+void NeuralNetwork::saveData() const
 {
 	for (const auto& layer : mLayers)
 	{
@@ -119,44 +131,55 @@ void NeuralNetwork::saveData()
 	}
 }
 
-void NeuralNetwork::loadWeightsAndBiases()
+void NeuralNetwork::loadWeightsAndBiases(const std::string& pathToModel)
 {
 	DenseLayer* denseLayer1{dynamic_cast<DenseLayer*>(mLayers[0].get())};
 	DenseLayer* denseLayer2{dynamic_cast<DenseLayer*>(mLayers[2].get())};
 
-	denseLayer1->setWeights(Utils::loadWeights("layers/dense_layer_weights_100x784"));
-	denseLayer1->setBiases(Utils::loadBiases("layers/dense_layer_biases_1x100"));
+	denseLayer1->setWeights(
+		Utils::loadWeights(
+				pathToModel + std::format("/dense_layer_weights_{}x{}", 
+					denseLayer1->rows(), denseLayer1->cols())
+		));
 
-	denseLayer2->setWeights(Utils::loadWeights("layers/dense_layer_weights_10x100"));
-	denseLayer2->setBiases(Utils::loadBiases("layers/dense_layer_biases_1x10"));
+	denseLayer1->setBiases(Utils::loadBiases(
+			pathToModel + std::format("/dense_layer_biases_1x{}", denseLayer1->rows())
+		));
+
+	denseLayer2->setWeights(
+		Utils::loadWeights(
+				pathToModel + std::format("/dense_layer_weights_{}x{}", 
+					denseLayer2->rows(), denseLayer2->cols())
+		));
+
+	denseLayer2->setBiases(Utils::loadBiases(
+			pathToModel + std::format("/dense_layer_biases_1x{}", denseLayer2->rows())
+		));
 
 }
 
-void NeuralNetwork::testAccuracy()
+f32 NeuralNetwork::testAccuracy()
 {
-	loadWeightsAndBiases();
-
-	Utils::Data testingImages{Utils::loadImage("data/t10k-images-idx3-ubyte.gz")};
-	Utils::Data testingLabels{Utils::loadLabel("data/t10k-labels-idx1-ubyte.gz")};
+	Utils::Data testingImages{Utils::loadImages("data/t10k-images-idx3-ubyte.gz")};
+	Utils::Data testingLabels{Utils::loadLabels("data/t10k-labels-idx1-ubyte.gz")};
 
 	std::vector<f32> imagesBuffer{Utils::loadBatchImages(testingImages.data, 0, testingImages.numberOfItems)};
 
 	Eigen::Map<RowMajorMatrix> images{imagesBuffer.data(), testingImages.numberOfItems, 784};
-	u32 randImageIndex{Utils::printImage(imagesBuffer)};
-	std::println("prediction: {}", makePrediction(images.row(randImageIndex)));
-	std::println("actual: {}\n\n", testingLabels.data[randImageIndex]);
+	// u32 randImageIndex{Utils::printImage(imagesBuffer)};
+	// std::println("prediction: {}", makePrediction(images.row(randImageIndex)));
+	// std::println("actual: {}\n\n", testingLabels.data[randImageIndex]);
 
-	f32 correct{};
-
-	for (u32 i{}; i < testingImages.numberOfItems; ++i) 
+	u32 correct{};
+	for (u32 i{}; i < testingImages.numberOfItems; i += BATCH_SIZE) 
 	{
 		u32 batchSize{ std::min(BATCH_SIZE, testingImages.numberOfItems - i) };
-		Eigen::Map<const Eigen::VectorX<u8>> correctLabels{testingLabels.data.data(), batchSize};
-		Eigen::VectorX<u8> predictions{makePredictions(images.row(i))};
-
+		Eigen::Map<const Eigen::VectorX<u8>> correctLabels{testingLabels.data.data() + i, batchSize};
+		auto batch{images.middleRows(i, batchSize)};
+		Eigen::VectorX<u8> predictions{makePredictions(batch).cast<u8>()};
 		correct += (predictions.array() == correctLabels.array()).count();
 	}
 
-	std::println("accuracy: {:2f}", correct / testingImages.numberOfItems);
-
+	const f32 accuracy{static_cast<f32>(correct) / testingImages.numberOfItems};
+	return accuracy;
 }

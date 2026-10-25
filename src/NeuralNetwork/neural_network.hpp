@@ -10,17 +10,18 @@ public:
 	NeuralNetwork(std::initializer_list<u32> layerSizes);
 
 	void train(u32 epochs);
-	void testAccuracy();
-	void loadWeightsAndBiases();
+	f32 testAccuracy();
+	void loadWeightsAndBiases(const std::string& pathToModel);
 
-	u32 makePrediction(const Matrix& mat);
-	Eigen::VectorXi makePredictions(const Matrix& mat);
+	u32 makePrediction(const Matrix& mat) const;
+	Eigen::VectorXi makePredictions(const Matrix& mat) const;
 private:
-	Matrix forward(Matrix input);
-	void backward(Matrix predOutputs, std::span<f32> labels);
+	Matrix forward(Matrix input) const;
+	Matrix forwardWithoutSoftmax(Matrix input) const;
+	void backward(Matrix predOutputs, std::span<f32> labels) const;
 	void applyGradientDescent();
 
-	void saveData();
+	void saveData() const;
 
 	std::vector<std::unique_ptr<Layer>> mLayers;
 	const u32 BATCH_SIZE{128u};
