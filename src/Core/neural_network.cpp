@@ -1,13 +1,13 @@
-#include "neural_network.hpp"
-#include "dense_layer.hpp"
-#include "relu_layer.hpp"
-#include "softmax.hpp"
+#include "Core/neural_network.hpp"
+#include "Core/dense_layer.hpp"
+#include "Core/relu_layer.hpp"
+#include "Core/softmax.hpp"
 #include <chrono>
 #include <iostream>
 #include <iterator>
 #include <memory>
 #include <print>
-#include "utils.hpp"
+#include "Core/utils.hpp"
 
 using RowMajorMatrixU = Eigen::Matrix<u32, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
@@ -155,7 +155,6 @@ void NeuralNetwork::loadWeightsAndBiases(const std::string& pathToModel)
 	denseLayer2->setBiases(Utils::loadBiases(
 			pathToModel + std::format("/dense_layer_biases_1x{}", denseLayer2->rows())
 		));
-
 }
 
 f32 NeuralNetwork::testAccuracy()

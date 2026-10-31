@@ -1,5 +1,5 @@
-#include "dense_layer.hpp"
-#include "utils.hpp"
+#include "Core/dense_layer.hpp"
+#include "Core/utils.hpp"
 #include <functional>
 #include <print>
 

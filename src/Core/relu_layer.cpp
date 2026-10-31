@@ -1,4 +1,4 @@
-#include "relu_layer.hpp"
+#include "Core/relu_layer.hpp"
 
 ReLULayer::ReLULayer(u32 inputSize, u32 outputSize)
 {
