@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <chrono>
 #include <print>
 #include <random>
 #include <zlib.h>
@@ -36,18 +37,19 @@ namespace Utils
 		// file.read((char*)compressedFile.data(), fileSize);
 
 
-		const u32 chunkSize{4096u};
-		output.resize(chunkSize * 4);
+		const u32 CHUNK_SIZE{4096u};
+		const u32 ADDED_CHUNKS{64u};
+		output.resize(CHUNK_SIZE * 4);
 
 		gzFile file{gzopen(filename.c_str(), "r")};
 		isize bytes{}, totalBytesRead{};
 		i32 err;
 		while (true)
 		{
-			if (totalBytesRead + chunkSize >= output.size())
-				output.resize(output.size() + 64 * chunkSize);
+			if (totalBytesRead + CHUNK_SIZE >= output.size())
+				output.resize(output.size() + ADDED_CHUNKS * CHUNK_SIZE);
 
-			bytes = gzread(file, output.data() + totalBytesRead, chunkSize);
+			bytes = gzread(file, output.data() + totalBytesRead, CHUNK_SIZE);
 
 			if (bytes < 0)
 			{
@@ -211,9 +213,10 @@ namespace Utils
 
 	void saveWeights(const Eigen::MatrixXf& weights, std::string filename)
 	{
+		std::string modelDirName{getModelName()};
 		if (filename == "")
 			filename = std::format("dense_layer_weights_{}x{}", weights.rows(), weights.cols());
-		std::ofstream file{"layers/" + filename, std::ios::binary};		
+		std::ofstream file{"models/" + modelDirName + filename, std::ios::binary};		
 
 		std::array<i64, 5> data{0x12344321, weights.rows(), 0u, weights.cols(), 0u};
 		file.write(reinterpret_cast<const char*>(data.data()), data.size() * sizeof(i64));
@@ -249,14 +252,24 @@ namespace Utils
 
 	void saveBiases(const Eigen::RowVectorXf& biases, std::string filename)
 	{
+
+		std::string modelDirName{getModelName()};
 		if (filename.empty())
 			filename = std::format("dense_layer_biases_{}x{}", biases.rows(), biases.cols());
-		std::ofstream file{"layers/" + filename, std::ios::binary};		
+		std::ofstream file{"models/" + modelDirName + filename, std::ios::binary};		
 
 		std::array<i64, 5> data{0x78900987, biases.rows(), 0u, biases.cols(), 0u};
 		file.write(reinterpret_cast<const char*>(data.data()), data.size() * sizeof(i64));
 		// file << 0x78900987 << biases.rows() << 0u << biases.cols() << 0u;
 
 		file.write(reinterpret_cast<const char*>(biases.data()), biases.size() * sizeof(f32));
+	}
+
+	std::string getModelName()
+	{
+		auto now{std::chrono::floor<std::chrono::seconds>( std::chrono::system_clock::now() )};
+		std::chrono::zoned_time zonedNow{std::chrono::current_zone(), now};
+
+		return std::format("Model[{:%Y-%m-%d %H:%M:%S}]/", zonedNow);
 	}
 }

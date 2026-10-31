@@ -64,4 +64,6 @@ namespace Utils
 	
 	u32 printImage(std::span<u8> data, std::optional<u32> index = std::nullopt);
 	u32 printImage(std::span<f32> data, std::optional<u32> index = std::nullopt);
+
+	std::string getModelName();
 }
