@@ -1,4 +1,4 @@
-#include "window.hpp"
+#include "Graphics/window.hpp"
 #include <SDL3/SDL_pixels.h>
 #include <SDL3/SDL_render.h>
 #include <print>
@@ -6,7 +6,6 @@
 #include <string_view>
 
 
-constexpr std::string_view FONT_LOCATION{"data/arcade.ttf"};
 Window::Window(const std::string& title)
 {
 	if (!SDL_Init(SDL_INIT_VIDEO))
@@ -14,16 +13,16 @@ Window::Window(const std::string& title)
 		throw std::runtime_error(std::format("Couldn't initialize SDL: {}", SDL_GetError()));
 	}
 
-	if (!SDL_CreateWindowAndRenderer(title.c_str(), WIDTH, HEIGHT, 0, &mWindow, &mRenderer))
+	if (!SDL_CreateWindowAndRenderer(title.c_str(), Graphics::WIDTH, Graphics::HEIGHT, 0, &mWindow, &mRenderer))
 	{
 		throw std::runtime_error(std::format("Couldn't create Window/Renderer: {}", SDL_GetError()));
 	}
 
 	TTF_Init();
 	mTextEngine = TTF_CreateRendererTextEngine(mRenderer);
-	mPredictionFont = TTF_OpenFont(FONT_LOCATION.data(), 24.0f); // path, point size
+	mPredictionFont = TTF_OpenFont(Graphics::FONT_LOCATION.data(), 24.0f); // path, point size
 
-	std::println("Creating window with dimension {}x{}", WIDTH, HEIGHT);
+	std::println("Creating window with dimension {}x{}", Graphics::WIDTH, Graphics::HEIGHT);
 }
 
 Window::~Window()
@@ -36,7 +35,6 @@ Window::~Window()
 void Window::run()
 {
 	SDL_Event event;
-
 	bool running{true};
 	while (running)
 	{
@@ -59,10 +57,10 @@ void Window::drawPrediction()
 {
 	static TTF_Text* text{TTF_CreateText(mTextEngine, mPredictionFont, "PREDICTION", 0)};
 	TTF_SetTextColor(text, 128, 128, 128, SDL_ALPHA_OPAQUE); 
-	TTF_DrawRendererText(text, END_OF_GRID + MARGIN, MARGIN);
+	TTF_DrawRendererText(text, Graphics::END_OF_GRID + Graphics::MARGIN, Graphics::MARGIN);
 
 	static TTF_Text* prediction{TTF_CreateText(mTextEngine, mPredictionFont, "3", 0)};
-	TTF_DrawRendererText(prediction, END_OF_GRID + PREDICTION_SPACE / 2, 4 * MARGIN);
+	TTF_DrawRendererText(prediction, Graphics::END_OF_GRID + Graphics::PREDICTION_SPACE / 2, 4 * Graphics::MARGIN);
 }
 	
 void Window::drawLine(SDL_FPoint p1, SDL_FPoint p2, SDL_Color color)
@@ -79,18 +77,18 @@ void Window::drawLine(SDL_FPoint p1, SDL_FPoint p2)
 
 void Window::drawGrid()
 {
-	f32 x{PIXEL_SIZE};
+	f32 x{Graphics::PIXEL_SIZE};
 	// draw vertical lines
-	for (u32 row{}; row < ROWS; ++row)
+	for (u32 row{}; row < Graphics::ROWS; ++row)
 	{
-		drawLine({x, 0}, {x, BOTTOM_OF_GRID});
-		x += PIXEL_SIZE;
+		drawLine({x, 0}, {x, Graphics::BOTTOM_OF_GRID});
+		x += Graphics::PIXEL_SIZE;
 	}
 
-	f32 y{PIXEL_SIZE};
-	for (u32 col{}; col < COLS; ++col)
+	f32 y{Graphics::PIXEL_SIZE};
+	for (u32 col{}; col < Graphics::COLS; ++col)
 	{
-		drawLine({0, y}, {END_OF_GRID, y});
-		y += PIXEL_SIZE;
+		drawLine({0, y}, {Graphics::END_OF_GRID, y});
+		y += Graphics::PIXEL_SIZE;
 	}
 }
