@@ -166,20 +166,22 @@ f32 NeuralNetwork::testAccuracy()
 	std::vector<f32> imagesBuffer{Utils::loadBatchImages(testingImages.data, 0, testingImages.numberOfItems)};
 
 	Eigen::Map<RowMajorMatrix> images{imagesBuffer.data(), testingImages.numberOfItems, 784};
-	// u32 randImageIndex{Utils::printImage(imagesBuffer)};
-	// std::println("prediction: {}", makePrediction(images.row(randImageIndex)));
-	// std::println("actual: {}\n\n", testingLabels.data[randImageIndex]);
 
-	u32 correct{};
+	u32 randImageIndex{Utils::printImage(imagesBuffer)};
+
+	std::println("prediction: {}", makePrediction(images.row(randImageIndex)));
+	std::println("actual: {}\n\n", testingLabels.data[randImageIndex]);
+
+	u32 correctPredictions{};
 	for (u32 i{}; i < testingImages.numberOfItems; i += BATCH_SIZE) 
 	{
 		u32 batchSize{ std::min(BATCH_SIZE, testingImages.numberOfItems - i) };
 		Eigen::Map<const Eigen::VectorX<u8>> correctLabels{testingLabels.data.data() + i, batchSize};
 		auto batch{images.middleRows(i, batchSize)};
 		Eigen::VectorX<u8> predictions{makePredictions(batch).cast<u8>()};
-		correct += (predictions.array() == correctLabels.array()).count();
+		correctPredictions += (predictions.array() == correctLabels.array()).count();
 	}
 
-	const f32 accuracy{static_cast<f32>(correct) / testingImages.numberOfItems};
+	const f32 accuracy{static_cast<f32>(correctPredictions) / testingImages.numberOfItems};
 	return accuracy;
 }
