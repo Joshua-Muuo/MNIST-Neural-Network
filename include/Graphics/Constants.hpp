@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types.hpp"
+#include "../types.hpp"
 #include <string_view>
 namespace Graphics
 {

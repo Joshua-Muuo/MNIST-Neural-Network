@@ -1,6 +1,8 @@
 #include "Graphics/canvas.hpp"
 #include "Graphics/Constants.hpp"
 #include "Graphics/window.hpp"
+#include "SDL3/SDL_keyboard.h"
+#include <SDL3/SDL_events.h>
 #include <print>
 #include <cmath>
 
@@ -35,6 +37,11 @@ void Canvas::drawLine(SDL_Point p1, SDL_Point p2)
 	SDL_RenderLine(mRenderer, p1.x, p1.y, p2.x, p2.y);
 }
 
+const std::array<f32, Graphics::NUM_OF_PIXELS>& Canvas::getCanvas() const
+{
+	return mCanvas;
+}
+
 void Canvas::handleEvent(const SDL_Event& event)
 {
 	static bool mouseDown{false};
@@ -48,12 +55,26 @@ void Canvas::handleEvent(const SDL_Event& event)
 		mouseDown = true;
 	}
 
-	if (event.type == SDL_EVENT_MOUSE_BUTTON_UP) mouseDown = false;
+	switch (event.type)
+	{ 
+		case SDL_EVENT_MOUSE_BUTTON_UP:
+			mouseDown = false;
+			break;
+
+		case SDL_EVENT_KEY_DOWN:
+		{
+			if (event.key.key == SDLK_C)
+				clearCanvas();
+			else if (event.key.key == SDLK_E)
+				toggleErase();
+		}
+	}
+
 }
 
 void Canvas::gaussianDab(SDL_FPoint p0)
 {
-	const f32 WHITE{1.0f};
+	const f32 WHITE{1.0f}, BLACK{0.0f};
 	i32 radius{static_cast<i32>(1.5f * mBrushRadius)};
 	f32 sigma{radius / 3.0f}, twoSigmaSq{2.0f * sigma * sigma};
 
@@ -84,7 +105,10 @@ void Canvas::gaussianDab(SDL_FPoint p0)
 			f32 dstVal{static_cast<float>(mCanvas[idx])};
 			f32 outVal{dstVal + alpha * (WHITE - dstVal)};
 
-			mCanvas[idx] = outVal;
+			if (!mEraseMode)
+				mCanvas[idx] = outVal;
+			else
+				mCanvas[idx] = BLACK;
 			if (x == p0.x && y == p0.y)
 			{
 				std::println("Looping over center, color {}", outVal);
@@ -105,6 +129,16 @@ void Canvas::drawStroke(SDL_FPoint p1, SDL_FPoint p2)
 		f32 t{static_cast<f32>(i) / steps};
 		gaussianDab({p1.x + dx * t, p1.y + dy * t});
 	}
+}
+
+void Canvas::toggleErase()
+{
+	mEraseMode = !mEraseMode;
+}
+
+void Canvas::clearCanvas()
+{
+	mCanvas.fill(0.0f);
 }
 
 void Canvas::drawGrid()
