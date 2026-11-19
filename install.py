@@ -1,4 +1,5 @@
 import urllib.request
+import struct
 
 trainSet = "https://raw.githubusercontent.com/fgnt/mnist/master/train-images-idx3-ubyte.gz"
 trainLabels = "https://raw.githubusercontent.com/fgnt/mnist/master/train-labels-idx1-ubyte.gz"
@@ -13,5 +14,13 @@ def downloadFile(*urls: str):
 
         urllib.request.urlretrieve(url, destination)
 
-downloadFile(trainSet, trainLabels, testSet, testLabels)
+# downloadFile(trainSet, trainLabels, testSet, testLabels)
+
+with open("layers/dense_layer_weights_100x784", "rb") as file:
+    # print(file.read(32))
+    data = file.read(8)
+    value = int.from_bytes(data, byteorder="little", signed=True)
+    print(f"{value:#x}")
+    number = struct.unpack('<q', data)[0]
+    print(number)
 
