@@ -213,7 +213,7 @@ namespace Utils
 
 	void saveWeights(const Eigen::MatrixXf& weights, std::string filename)
 	{
-		std::string modelDirName{getModelName()};
+		std::string modelDirName{"model2/"};
 		if (filename == "")
 			filename = std::format("dense_layer_weights_{}x{}", weights.rows(), weights.cols());
 		std::ofstream file{"models/" + modelDirName + filename, std::ios::binary};		
@@ -253,7 +253,7 @@ namespace Utils
 	void saveBiases(const Eigen::RowVectorXf& biases, std::string filename)
 	{
 
-		std::string modelDirName{getModelName()};
+		std::string modelDirName{"model2/"};
 		if (filename.empty())
 			filename = std::format("dense_layer_biases_{}x{}", biases.rows(), biases.cols());
 		std::ofstream file{"models/" + modelDirName + filename, std::ios::binary};		

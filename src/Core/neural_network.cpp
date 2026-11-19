@@ -77,6 +77,7 @@ void NeuralNetwork::train(u32 epochs)
 			u32 batchSize{ std::min(BATCH_SIZE, trainingImages.numberOfItems - i) };
 
 			std::vector<f32> batch{Utils::loadBatchImages(trainingImages.data, i, batchSize)};
+			augmentData(batch);
 			Eigen::Map<RowMajorMatrix> input{batch.data(), batchSize, Utils::PIXELS_PER_IMAGE};
 			Matrix predOutput{forward(input)};
 
@@ -94,6 +95,83 @@ void NeuralNetwork::train(u32 epochs)
 	
 }
 
+void NeuralNetwork::augmentData(std::span<f32> data)
+{
+	usize images{data.size() / Utils::PIXELS_PER_IMAGE};
+	for (usize image{}; image < images; ++image)
+	{
+		std::span<f32> currentImage{
+			data.subspan(image * Utils::PIXELS_PER_IMAGE, Utils::PIXELS_PER_IMAGE)};
+		rotateImage(currentImage);
+		translateImage(currentImage);
+	}
+}
+	
+void NeuralNetwork::rotateImage(std::span<f32> data)
+{
+	std::vector<f32> newImage(784, 0.0f);
+	f32 angle{Utils::rand(-10.0f, 10.0f)};
+
+	f32 width{28}, height{28};
+	const f32 cx = (width - 1) / 2.0f;
+    const float cy = (height - 1) / 2.0f;
+
+    const float cosA = std::cos(angle);
+    const float sinA = std::sin(angle);
+
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            float dx = x - cx;
+            float dy = y - cy;
+
+            float sx = cosA * dx + sinA * dy + cx;
+            float sy = -sinA * dx + cosA * dy + cy;
+
+            int x0 = static_cast<int>(std::floor(sx));
+            int y0 = static_cast<int>(std::floor(sy));
+
+            int x1 = x0 + 1;
+            int y1 = y0 + 1;
+
+            if (x0 < 0 || y0 < 0 ||
+                x1 >= width || y1 >= height) {
+                continue;
+            }
+
+            float a = sx - x0;
+            float b = sy - y0;
+
+            newImage[y * 28+ x] =
+                (1 - a) * (1 - b) * data[x0 + y0 * 28] +
+                a * (1 - b) * data[y0 * 28 + x1] +
+                (1 - a) * b * data[y1 * 28 + x0] +
+                a * b * data[y1 * 28 + x1];
+        }
+
+	}
+
+	std::copy(newImage.begin(), newImage.end(), data.begin());
+}
+
+void NeuralNetwork::translateImage(std::span<f32> data)
+{
+	std::vector<f32> newImage(784, 0.0f);
+	i32 dx{Utils::rand(-2, 2)}, dy{Utils::rand(-2, 2)};
+	for (int y = 0; y < 28; ++y) {
+        for (int x = 0; x < 28; ++x) {
+            int nx = x + dx;
+            int ny = y + dy;
+
+            if (nx >= 0 && nx < 28 &&
+                ny >= 0 && ny < 28) {
+                newImage[ny*28 +  nx] = data[y * 28 + x];
+            }
+        }
+    }
+
+	std::copy(newImage.begin(), newImage.end(), data.begin());
+}
+
 void NeuralNetwork::applyGradientDescent()
 {
 	const f32 learningRate{0.01f};
@@ -104,6 +182,16 @@ void NeuralNetwork::applyGradientDescent()
 u32 NeuralNetwork::makePrediction(const Matrix& mat) const
 {
 	
+	Matrix predOutput{forwardWithoutSoftmax(mat)};
+	Eigen::Index predictedDigit{};
+
+	predOutput.row(0).maxCoeff(&predictedDigit);
+	return predictedDigit;
+}
+
+u32 NeuralNetwork::makePrediction(std::span<f32, 784> data) const
+{
+	Eigen::Map<RowMajorMatrix> mat{data.data(), 1, Utils::PIXELS_PER_IMAGE};
 	Matrix predOutput{forwardWithoutSoftmax(mat)};
 	Eigen::Index predictedDigit{};
 

@@ -15,8 +15,8 @@ int main(i32 argc, const char* argv[])
 	// u64 duration{};
 	if (args.size() <= 1)
 	{
-		const f32 accuracy{nn.testAccuracy()};
-		std::println("accuracy of {:2f}%", 100 * accuracy);
+		// const f32 accuracy{nn.testAccuracy()};
+		// std::println("accuracy of {:2f}%", 100 * accuracy);
 	}
 	else
 	{

@@ -31,7 +31,7 @@ mCanvas{Graphics::CANVAS_WIDTH, Graphics::CANVAS_HEIGHT}
 	mInstructionFont= TTF_OpenFont(Graphics::FONT_LOCATION.data(), 18.0f); // path, point size
 
 	initImGUI();
-	const std::string modelLocation{"models/model1"};
+	const std::string modelLocation{"models/model2"};
 	mNN.loadWeightsAndBiases(modelLocation);
 	std::println("Creating window with dimension {}x{}", Graphics::WIDTH, Graphics::HEIGHT);
 }
@@ -88,7 +88,6 @@ void Window::drawPrediction()
 	auto canvas{mCanvas.getCanvas()};
 	u32 pred{mNN.makePrediction(canvas)};
 	std::string predText{std::format("{}", pred)};
-	std::println("prediction is {}", pred);
 	TTF_Text* prediction = TTF_CreateText(mTextEngine, mPredictionFont, predText.c_str(), 0);
 	TTF_DrawRendererText(prediction, Graphics::END_OF_GRID + Graphics::PREDICTION_SPACE / 2, 4 * Graphics::MARGIN);
 

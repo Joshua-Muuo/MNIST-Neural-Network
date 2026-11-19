@@ -64,7 +64,10 @@ void Canvas::handleEvent(const SDL_Event& event)
 		case SDL_EVENT_KEY_DOWN:
 		{
 			if (event.key.key == SDLK_C)
+			{
 				clearCanvas();
+				mEraseMode = false;
+			}
 			else if (event.key.key == SDLK_E)
 				toggleErase();
 		}

@@ -14,8 +14,12 @@ public:
 	void loadWeightsAndBiases(const std::string& pathToModel);
 
 	u32 makePrediction(const Matrix& mat) const;
+	u32 makePrediction(std::span<f32, 784> data) const;
 	Eigen::VectorXi makePredictions(const Matrix& mat) const;
 private:
+	void augmentData(std::span<f32> data);
+	void rotateImage(std::span<f32> data);
+	void translateImage(std::span<f32> data);
 	Matrix forward(Matrix input) const;
 	Matrix forwardWithoutSoftmax(Matrix input) const;
 	void backward(Matrix predOutputs, std::span<f32> labels) const;
