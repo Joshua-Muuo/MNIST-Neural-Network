@@ -6,17 +6,23 @@
 #include <string_view>
 
 
-Window::Window(const std::string& title)
+Window::Window(const std::string& title):
+mCanvas{Graphics::CANVAS_WIDTH, Graphics::CANVAS_HEIGHT}
 {
 	if (!SDL_Init(SDL_INIT_VIDEO))
 	{
 		throw std::runtime_error(std::format("Couldn't initialize SDL: {}", SDL_GetError()));
 	}
 
-	if (!SDL_CreateWindowAndRenderer(title.c_str(), Graphics::WIDTH, Graphics::HEIGHT, 0, &mWindow, &mRenderer))
+	if (!SDL_CreateWindowAndRenderer(
+				title.c_str(), Graphics::WIDTH, Graphics::HEIGHT, 0, &mWindow, &mRenderer
+		))
 	{
-		throw std::runtime_error(std::format("Couldn't create Window/Renderer: {}", SDL_GetError()));
+		throw std::runtime_error(
+				std::format("Couldn't create Window/Renderer: {}", SDL_GetError())
+		);
 	}
+	mCanvas.setRenderer(mRenderer);
 
 	TTF_Init();
 	mTextEngine = TTF_CreateRendererTextEngine(mRenderer);
@@ -42,12 +48,14 @@ void Window::run()
 		{
 			if (event.type == SDL_EVENT_QUIT) 
 				running = false;
+
+			mCanvas.handleEvent(event);
 		}
 
 		SDL_SetRenderDrawColor(mRenderer, 0, 0, 0, 255);
         SDL_RenderClear(mRenderer);
 
-		drawGrid();
+		mCanvas.drawGrid();
 		drawPrediction();
 		SDL_RenderPresent(mRenderer);
 	}
@@ -63,32 +71,4 @@ void Window::drawPrediction()
 	TTF_DrawRendererText(prediction, Graphics::END_OF_GRID + Graphics::PREDICTION_SPACE / 2, 4 * Graphics::MARGIN);
 }
 	
-void Window::drawLine(SDL_FPoint p1, SDL_FPoint p2, SDL_Color color)
-{
-	SDL_SetRenderDrawColor(mRenderer, color.r, color.g, color.b, color.a);
-	SDL_RenderLine(mRenderer, p1.x, p1.y, p2.x, p2.y);
-}
 
-void Window::drawLine(SDL_FPoint p1, SDL_FPoint p2)
-{
-	SDL_SetRenderDrawColor(mRenderer, 255, 255, 255, SDL_ALPHA_OPAQUE);
-	SDL_RenderLine(mRenderer, p1.x, p1.y, p2.x, p2.y);
-}
-
-void Window::drawGrid()
-{
-	f32 x{Graphics::PIXEL_SIZE};
-	// draw vertical lines
-	for (u32 row{}; row < Graphics::ROWS; ++row)
-	{
-		drawLine({x, 0}, {x, Graphics::BOTTOM_OF_GRID});
-		x += Graphics::PIXEL_SIZE;
-	}
-
-	f32 y{Graphics::PIXEL_SIZE};
-	for (u32 col{}; col < Graphics::COLS; ++col)
-	{
-		drawLine({0, y}, {Graphics::END_OF_GRID, y});
-		y += Graphics::PIXEL_SIZE;
-	}
-}
